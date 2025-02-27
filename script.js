@@ -11,6 +11,7 @@ let registeredUsers = [];
 let isModelLoaded = false;
 let recognitionInterval = null;
 let isRecognizing = false;
+let audioContext = null;
 
 // DOMが読み込まれたら実行
 document.addEventListener('DOMContentLoaded', async () => {
@@ -215,6 +216,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     // キャンバスに顔の枠を描画
                     drawDetection(checkinCanvas, detections[0].detection, match.user.name);
+                    
+                    // チェックイン成功音を再生
+                    playCheckinSound();
                 } else {
                     // チェックイン失敗
                     checkinStatus.textContent = '登録されていないユーザーです。先に登録してください。';
@@ -502,6 +506,55 @@ function stopContinuousRecognition() {
     isRecognizing = false;
 }
 
+// チェックイン成功時に音を鳴らす関数
+function playCheckinSound() {
+    try {
+        // AudioContextが未初期化の場合は初期化
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        // オシレーターを作成（音源）
+        const oscillator1 = audioContext.createOscillator();
+        const oscillator2 = audioContext.createOscillator();
+        
+        // ゲインノードを作成（音量調整）
+        const gainNode = audioContext.createGain();
+        
+        // オシレーターの設定
+        oscillator1.type = 'sine'; // サイン波
+        oscillator1.frequency.setValueAtTime(1000, audioContext.currentTime); // 開始周波数
+        oscillator1.frequency.exponentialRampToValueAtTime(1500, audioContext.currentTime + 0.1); // 終了周波数
+        
+        oscillator2.type = 'sine'; // サイン波
+        oscillator2.frequency.setValueAtTime(1200, audioContext.currentTime + 0.1); // 開始周波数
+        oscillator2.frequency.exponentialRampToValueAtTime(1800, audioContext.currentTime + 0.2); // 終了周波数
+        
+        // ゲインの設定（音量の減衰）
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime); // 初期音量
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3); // フェードアウト
+        
+        // 接続
+        oscillator1.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // 再生開始
+        oscillator1.start();
+        oscillator1.stop(audioContext.currentTime + 0.1);
+        
+        // 少し遅れて2つ目の音を再生
+        setTimeout(() => {
+            oscillator2.connect(gainNode);
+            oscillator2.start();
+            oscillator2.stop(audioContext.currentTime + 0.2);
+        }, 100);
+        
+        console.log('チェックイン音を再生しました');
+    } catch (error) {
+        console.error('音声再生エラー:', error);
+    }
+}
+
 // ページを離れる前にカメラと認識を停止
 window.addEventListener('beforeunload', () => {
     // 連続認識を停止
@@ -515,5 +568,10 @@ window.addEventListener('beforeunload', () => {
     // チェックイン用カメラの停止
     if (checkinStream) {
         checkinStream.getTracks().forEach(track => track.stop());
+    }
+    
+    // AudioContextを閉じる
+    if (audioContext) {
+        audioContext.close();
     }
 });
