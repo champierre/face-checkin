@@ -9,6 +9,8 @@ let registrationStream = null;
 let checkinStream = null;
 let registeredUsers = [];
 let isModelLoaded = false;
+let recognitionInterval = null;
+let isRecognizing = false;
 
 // DOMが読み込まれたら実行
 document.addEventListener('DOMContentLoaded', async () => {
@@ -233,7 +235,10 @@ async function startVideo(videoElement, type) {
             document.getElementById('registrationStatus').textContent = '名前を入力して「顔を登録」ボタンをクリックしてください';
         } else {
             document.getElementById('checkinBtn').disabled = false;
-            document.getElementById('checkinStatus').textContent = '「チェックイン」ボタンをクリックして顔認証を行ってください';
+            document.getElementById('checkinStatus').textContent = '顔認識を行っています。チェックインするには「チェックイン」ボタンをクリックしてください';
+            
+            // チェックイン画面では常に顔認識を行う
+            startContinuousRecognition();
         }
         
         console.log(`${type}用カメラの起動が完了しました`);
@@ -372,8 +377,81 @@ function loadUsersFromLocalStorage() {
     }
 }
 
-// ページを離れる前にカメラを停止
+// 定期的に顔認識を行う関数
+async function startContinuousRecognition() {
+    // すでに実行中の場合は何もしない
+    if (isRecognizing) return;
+    
+    isRecognizing = true;
+    const checkinStatus = document.getElementById('checkinStatus');
+    
+    // 前回のインターバルがあれば停止
+    if (recognitionInterval) {
+        clearInterval(recognitionInterval);
+    }
+    
+    // 1秒ごとに顔認識を実行
+    recognitionInterval = setInterval(async () => {
+        try {
+            // 顔の検出と特徴抽出
+            const detections = await detectFace(checkinVideo);
+            
+            if (detections.length === 0) {
+                // 顔が検出されない場合はキャンバスをクリア
+                const ctx = checkinCanvas.getContext('2d');
+                ctx.clearRect(0, 0, checkinCanvas.width, checkinCanvas.height);
+                return;
+            }
+            
+            if (detections.length > 1) {
+                // 複数の顔が検出された場合
+                checkinStatus.textContent = '複数の顔が検出されました。一人だけ映るようにしてください。';
+                checkinStatus.className = 'error';
+                return;
+            }
+            
+            // 顔の特徴を抽出
+            const descriptor = detections[0].descriptor;
+            
+            // 登録ユーザーと照合
+            const match = findBestMatch(descriptor);
+            
+            if (match) {
+                // 登録ユーザーが見つかった場合
+                checkinStatus.textContent = `${match.user.name}さんを認識しました`;
+                checkinStatus.className = 'success';
+                
+                // キャンバスに顔の枠を描画
+                drawDetection(checkinCanvas, detections[0].detection, match.user.name);
+            } else {
+                // 登録ユーザーが見つからない場合
+                checkinStatus.textContent = '登録されていないユーザーです';
+                checkinStatus.className = 'error';
+                
+                // キャンバスに顔の枠を描画（未登録）
+                drawDetection(checkinCanvas, detections[0].detection, '未登録');
+            }
+        } catch (error) {
+            console.error('連続認識エラー:', error);
+            // エラーが発生した場合は処理を続行するため、ここではステータスを更新しない
+        }
+    }, 1000); // 1秒ごとに実行
+}
+
+// 連続認識を停止する関数
+function stopContinuousRecognition() {
+    if (recognitionInterval) {
+        clearInterval(recognitionInterval);
+        recognitionInterval = null;
+    }
+    isRecognizing = false;
+}
+
+// ページを離れる前にカメラと認識を停止
 window.addEventListener('beforeunload', () => {
+    // 連続認識を停止
+    stopContinuousRecognition();
+    
     // 登録用カメラの停止
     if (registrationStream) {
         registrationStream.getTracks().forEach(track => track.stop());
