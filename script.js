@@ -12,6 +12,7 @@ let isModelLoaded = false;
 let recognitionInterval = null;
 let isRecognizing = false;
 let audioContext = null;
+let fileHandle = null; // JSONファイルのハンドル
 
 // DOMが読み込まれたら実行
 document.addEventListener('DOMContentLoaded', async () => {
@@ -102,8 +103,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         await startVideo(registrationVideo, 'registration');
         await startVideo(checkinVideo, 'checkin');
 
-        // ローカルストレージからユーザーデータを読み込む
-        loadUsersFromLocalStorage();
+        // JSONファイルからユーザーデータを読み込む
+        await loadUsersFromFile();
         
         // ユーザーリストを表示
         updateUserList();
@@ -158,8 +159,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                 
                 registrationStatus.className = 'success';
                 
-                // ローカルストレージに保存
-                saveUsersToLocalStorage();
+                // JSONファイルに保存
+                await saveUsersToFile();
                 
                 // ユーザーリストを更新
                 updateUserList();
@@ -205,8 +206,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const now = new Date();
                     match.user.lastCheckin = now.toISOString();
                     
-                    // ローカルストレージに保存
-                    saveUsersToLocalStorage();
+                    // JSONファイルに保存
+                    await saveUsersToFile();
                     
                     // ユーザーリストを更新
                     updateUserList();
@@ -415,24 +416,67 @@ function updateUserList() {
 }
 
 // ユーザーを削除する関数
-function deleteUser(index) {
+async function deleteUser(index) {
     if (confirm(`${registeredUsers[index].name}さんを削除してもよろしいですか？`)) {
         registeredUsers.splice(index, 1);
-        saveUsersToLocalStorage();
+        await saveUsersToFile();
         updateUserList();
     }
 }
 
-// ローカルストレージにユーザーデータを保存する関数
-function saveUsersToLocalStorage() {
-    localStorage.setItem('faceCheckinUsers', JSON.stringify(registeredUsers));
+// JSONファイルにユーザーデータを保存する関数
+async function saveUsersToFile() {
+    try {
+        if (!fileHandle) {
+            // ファイルが選択されていない場合、新規作成
+            fileHandle = await window.showSaveFilePicker({
+                suggestedName: 'face-checkin-users.json',
+                types: [{
+                    description: 'JSON File',
+                    accept: {'application/json': ['.json']},
+                }],
+            });
+        }
+
+        // ファイルに書き込むためのWritableStreamを取得
+        const writable = await fileHandle.createWritable();
+        // JSONデータを書き込む
+        await writable.write(JSON.stringify(registeredUsers, null, 2));
+        // ストリームを閉じる
+        await writable.close();
+        
+        console.log('ユーザーデータをファイルに保存しました');
+    } catch (error) {
+        console.error('ファイル保存エラー:', error);
+        alert('ユーザーデータの保存に失敗しました: ' + error.message);
+    }
 }
 
-// ローカルストレージからユーザーデータを読み込む関数
-function loadUsersFromLocalStorage() {
-    const savedUsers = localStorage.getItem('faceCheckinUsers');
-    if (savedUsers) {
-        registeredUsers = JSON.parse(savedUsers);
+// JSONファイルからユーザーデータを読み込む関数
+async function loadUsersFromFile() {
+    try {
+        // ファイル選択ダイアログを表示
+        [fileHandle] = await window.showOpenFilePicker({
+            types: [{
+                description: 'JSON File',
+                accept: {'application/json': ['.json']},
+            }],
+        });
+
+        // ファイルの内容を読み込む
+        const file = await fileHandle.getFile();
+        const contents = await file.text();
+        registeredUsers = JSON.parse(contents);
+        
+        // ユーザーリストを更新
+        updateUserList();
+        console.log('ユーザーデータをファイルから読み込みました');
+    } catch (error) {
+        console.error('ファイル読み込みエラー:', error);
+        // 新規ユーザーの場合は空の配列で初期化
+        if (!registeredUsers.length) {
+            registeredUsers = [];
+        }
     }
 }
 
