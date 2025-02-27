@@ -25,6 +25,61 @@ document.addEventListener('DOMContentLoaded', async () => {
         const registrationStatus = document.getElementById('registrationStatus');
         const checkinStatus = document.getElementById('checkinStatus');
         const userList = document.getElementById('userList');
+        
+        // タブ切り替え機能の実装
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // アクティブなタブボタンを変更
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                
+                // アクティブなタブコンテンツを変更
+                const tabId = button.getAttribute('data-tab');
+                tabContents.forEach(content => content.classList.remove('active'));
+                document.getElementById(tabId).classList.add('active');
+                
+                // タブ切り替え時にビデオストリームを最適化
+                optimizeVideoStreams(tabId);
+            });
+        });
+        
+        // タブに応じてビデオストリームを最適化する関数
+        function optimizeVideoStreams(activeTabId) {
+            // 登録タブがアクティブな場合
+            if (activeTabId === 'registration') {
+                // チェックイン用のビデオを一時停止（リソース節約のため）
+                if (checkinVideo && checkinVideo.srcObject) {
+                    checkinVideo.srcObject.getTracks().forEach(track => track.enabled = false);
+                }
+                // 登録用のビデオを有効化
+                if (registrationVideo && registrationVideo.srcObject) {
+                    registrationVideo.srcObject.getTracks().forEach(track => track.enabled = true);
+                }
+            } 
+            // チェックインタブがアクティブな場合
+            else if (activeTabId === 'checkin') {
+                // 登録用のビデオを一時停止
+                if (registrationVideo && registrationVideo.srcObject) {
+                    registrationVideo.srcObject.getTracks().forEach(track => track.enabled = false);
+                }
+                // チェックイン用のビデオを有効化
+                if (checkinVideo && checkinVideo.srcObject) {
+                    checkinVideo.srcObject.getTracks().forEach(track => track.enabled = true);
+                }
+            }
+            // ユーザー一覧タブがアクティブな場合は両方のビデオを一時停止
+            else if (activeTabId === 'userlist') {
+                if (registrationVideo && registrationVideo.srcObject) {
+                    registrationVideo.srcObject.getTracks().forEach(track => track.enabled = false);
+                }
+                if (checkinVideo && checkinVideo.srcObject) {
+                    checkinVideo.srcObject.getTracks().forEach(track => track.enabled = false);
+                }
+            }
+        }
 
         // ボタンを初期状態では無効化
         captureBtn.disabled = true;
