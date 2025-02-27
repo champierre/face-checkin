@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>顔認証チェックインシステム</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- face-api.jsをCDNから読み込み（@vladmandic/face-apiは新しいフォーク） -->
+    <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+    <script defer src="script.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>顔認証チェックインシステム</h1>
+        
+        <div class="registration-section" id="registrationSection">
+            <h2>ユーザー登録</h2>
+            <div class="input-group">
+                <label for="userName">名前：</label>
+                <input type="text" id="userName" placeholder="名前を入力してください">
+            </div>
+            <div class="video-container">
+                <video id="registrationVideo" width="640" height="480" autoplay muted></video>
+                <canvas id="registrationCanvas" width="640" height="480"></canvas>
+            </div>
+            <div class="button-group">
+                <button id="captureBtn">顔を登録</button>
+                <p id="registrationStatus"></p>
+            </div>
+        </div>
+
+        <div class="checkin-section" id="checkinSection">
+            <h2>チェックイン</h2>
+            <div class="video-container">
+                <video id="checkinVideo" width="640" height="480" autoplay muted></video>
+                <canvas id="checkinCanvas" width="640" height="480"></canvas>
+            </div>
+            <div class="button-group">
+                <button id="checkinBtn">チェックイン</button>
+                <p id="checkinStatus"></p>
+            </div>
+        </div>
+
+        <div class="user-list">
+            <h2>登録ユーザー一覧</h2>
+            <ul id="userList"></ul>
+        </div>
+    </div>
+</body>
+</html>
