@@ -515,41 +515,34 @@ function playCheckinSound() {
         }
         
         // オシレーターを作成（音源）
-        const oscillator1 = audioContext.createOscillator();
-        const oscillator2 = audioContext.createOscillator();
+        const oscillator = audioContext.createOscillator();
         
         // ゲインノードを作成（音量調整）
         const gainNode = audioContext.createGain();
         
         // オシレーターの設定
-        oscillator1.type = 'sine'; // サイン波
-        oscillator1.frequency.setValueAtTime(1000, audioContext.currentTime); // 開始周波数
-        oscillator1.frequency.exponentialRampToValueAtTime(1500, audioContext.currentTime + 0.1); // 終了周波数
+        oscillator.type = 'sine'; // サイン波
         
-        oscillator2.type = 'sine'; // サイン波
-        oscillator2.frequency.setValueAtTime(1200, audioContext.currentTime + 0.1); // 開始周波数
-        oscillator2.frequency.exponentialRampToValueAtTime(1800, audioContext.currentTime + 0.2); // 終了周波数
+        // 「ズキューン」という音を作るための周波数変化
+        // 最初は高い音から始まり、下降してから上昇する
+        const now = audioContext.currentTime;
+        oscillator.frequency.setValueAtTime(1800, now); // 開始周波数（高め）
+        oscillator.frequency.exponentialRampToValueAtTime(800, now + 0.15); // 下降
+        oscillator.frequency.exponentialRampToValueAtTime(2000, now + 0.3); // 上昇
         
         // ゲインの設定（音量の減衰）
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime); // 初期音量
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3); // フェードアウト
+        gainNode.gain.setValueAtTime(0.3, now); // 初期音量
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4); // フェードアウト
         
         // 接続
-        oscillator1.connect(gainNode);
+        oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
         
         // 再生開始
-        oscillator1.start();
-        oscillator1.stop(audioContext.currentTime + 0.1);
+        oscillator.start();
+        oscillator.stop(now + 0.4); // 0.4秒間再生
         
-        // 少し遅れて2つ目の音を再生
-        setTimeout(() => {
-            oscillator2.connect(gainNode);
-            oscillator2.start();
-            oscillator2.stop(audioContext.currentTime + 0.2);
-        }, 100);
-        
-        console.log('チェックイン音を再生しました');
+        console.log('「ズキューン」音を再生しました');
     } catch (error) {
         console.error('音声再生エラー:', error);
     }
