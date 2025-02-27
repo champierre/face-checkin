@@ -15,13 +15,13 @@
         
         <!-- タブナビゲーション -->
         <div class="tabs">
-            <button class="tab-button active" data-tab="registration">ユーザー登録</button>
-            <button class="tab-button" data-tab="checkin">チェックイン</button>
+            <button class="tab-button active" data-tab="checkin">チェックイン</button>
+            <button class="tab-button" data-tab="registration">ユーザー登録</button>
             <button class="tab-button" data-tab="userlist">ユーザー一覧</button>
         </div>
         
         <!-- タブコンテンツ -->
-        <div class="tab-content active" id="registration">
+        <div class="tab-content" id="registration">
             <h2>ユーザー登録</h2>
             <div class="input-group">
                 <label for="userName">名前：</label>
@@ -37,7 +37,7 @@
             </div>
         </div>
 
-        <div class="tab-content" id="checkin">
+        <div class="tab-content active" id="checkin">
             <h2>チェックイン</h2>
             <div class="video-container">
                 <video id="checkinVideo" width="640" height="480" autoplay muted></video>
