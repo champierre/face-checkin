@@ -235,7 +235,7 @@ async function startVideo(videoElement, type) {
             document.getElementById('registrationStatus').textContent = '名前を入力して「顔を登録」ボタンをクリックしてください';
         } else {
             document.getElementById('checkinBtn').disabled = false;
-            document.getElementById('checkinStatus').textContent = '「チェックイン」ボタンをクリックして顔認証を行ってください';
+            document.getElementById('checkinStatus').textContent = '顔認識を行っています。チェックインするには「チェックイン」ボタンをクリックしてください';
             
             // チェックイン画面では常に顔認識を行う
             startContinuousRecognition();
