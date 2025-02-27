@@ -11,6 +11,7 @@ let registeredUsers = [];
 let isModelLoaded = false;
 let recognitionInterval = null;
 let isRecognizing = false;
+let audioContext = null;
 
 // DOMが読み込まれたら実行
 document.addEventListener('DOMContentLoaded', async () => {
@@ -215,6 +216,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     
                     // キャンバスに顔の枠を描画
                     drawDetection(checkinCanvas, detections[0].detection, match.user.name);
+                    
+                    // チェックイン成功音を再生
+                    playCheckinSound();
                 } else {
                     // チェックイン失敗
                     checkinStatus.textContent = '登録されていないユーザーです。先に登録してください。';
@@ -502,6 +506,48 @@ function stopContinuousRecognition() {
     isRecognizing = false;
 }
 
+// チェックイン成功時に音を鳴らす関数
+function playCheckinSound() {
+    try {
+        // AudioContextが未初期化の場合は初期化
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        // オシレーターを作成（音源）
+        const oscillator = audioContext.createOscillator();
+        
+        // ゲインノードを作成（音量調整）
+        const gainNode = audioContext.createGain();
+        
+        // オシレーターの設定
+        oscillator.type = 'sine'; // サイン波
+        
+        // 「ズキューン」という音を作るための周波数変化
+        // 最初は高い音から始まり、下降してから上昇する
+        const now = audioContext.currentTime;
+        oscillator.frequency.setValueAtTime(1800, now); // 開始周波数（高め）
+        oscillator.frequency.exponentialRampToValueAtTime(800, now + 0.15); // 下降
+        oscillator.frequency.exponentialRampToValueAtTime(2000, now + 0.3); // 上昇
+        
+        // ゲインの設定（音量の減衰）
+        gainNode.gain.setValueAtTime(0.3, now); // 初期音量
+        gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.4); // フェードアウト
+        
+        // 接続
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // 再生開始
+        oscillator.start();
+        oscillator.stop(now + 0.4); // 0.4秒間再生
+        
+        console.log('「ズキューン」音を再生しました');
+    } catch (error) {
+        console.error('音声再生エラー:', error);
+    }
+}
+
 // ページを離れる前にカメラと認識を停止
 window.addEventListener('beforeunload', () => {
     // 連続認識を停止
@@ -515,5 +561,10 @@ window.addEventListener('beforeunload', () => {
     // チェックイン用カメラの停止
     if (checkinStream) {
         checkinStream.getTracks().forEach(track => track.stop());
+    }
+    
+    // AudioContextを閉じる
+    if (audioContext) {
+        audioContext.close();
     }
 });
